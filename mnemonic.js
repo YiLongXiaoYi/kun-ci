@@ -1,0 +1,626 @@
+/* 联想记忆数据：同族词分组 + 词根钩子（共覆盖 247 / 257 条） */
+window.MNEMO = {
+"v": 1,
+"families": [
+{
+"id": "mouth",
+"title": "口器五件套（由上到下）",
+"tip": "从上到下依次是：上唇 → 上颚 → 下颚 → 下唇，舌（下咽）夹在中间。记住「唇在外、颚在里」。",
+"words": [
+"mouthparts",
+"labrum",
+"mandible",
+"maxilla",
+"labium",
+"hypopharynx"
+]
+},
+{
+"id": "antenna",
+"title": "触角的三节",
+"tip": "从基部到端部：柄节（一根柄）→ 梗节（小一号的柄）→ 鞭节（细长多节像鞭子）。",
+"words": [
+"antenna",
+"scape",
+"pedicel",
+"flagellum"
+]
+},
+{
+"id": "legseg",
+"title": "足的五节（借用人的腿骨名）",
+"tip": "由基部到端部：基节(髋) → 转节(转子) → 股节(大腿骨) → 胫节(小腿骨) → 跗节(脚背)。昆虫的足节直接借用了人腿骨的名字，按人腿顺序记就不会乱。",
+"words": [
+"leg",
+"coxa",
+"trochanter",
+"femur",
+"tibia",
+"tarsus"
+]
+},
+{
+"id": "plate",
+"title": "体壁三块板",
+"tip": "背、腹、侧三块板配成一套：terg- 背、stern- 腹、pleur- 侧肋。",
+"words": [
+"tergum",
+"sternum",
+"pleuron"
+]
+},
+{
+"id": "gut",
+"title": "消化道（食物路线）",
+"tip": "咽喉 → 食道 → 嗉囊(存) → 前胃(磨) → 胃盲囊 → 中肠(消化吸收) → 马氏管(排泄) → 回肠 → 结肠 → 直肠 → 肛门。顺着这条线记，前后肠的位置自然不会错。",
+"words": [
+"alimentary canal",
+"pharynx",
+"oesophagus",
+"crop",
+"proventriculus",
+"gastric caeca",
+"midgut",
+"Malpighian tube",
+"ileum",
+"colon",
+"rectum",
+"foregut",
+"hindgut",
+"peritrophic membrane"
+]
+},
+{
+"id": "circ",
+"title": "循环系统：haemo- = 血",
+"tip": "haemo-/hemo- 都是「血」（haemoglobin 血红蛋白）。昆虫是开管循环：血淋巴泡在血腔里，心脏就在背上的背血管里。",
+"words": [
+"circulatory system",
+"haemolymph",
+"haemocoele",
+"hemocytes",
+"plasma",
+"dorsal vessel",
+"aorta",
+"accessory pulsatile organ"
+]
+},
+{
+"id": "nerve",
+"title": "神经与神经节",
+"tip": "昆虫的神经系统在腹侧，所以叫腹神经索(ventral nerve cord)；咽下神经节管口器。",
+"words": [
+"nervous system",
+"nerve",
+"neurone",
+"ganglion",
+"ventral nerve cord",
+"suboesophageal ganglion",
+"central nervous system",
+"synapse",
+"reflex arc",
+"acetyl choline"
+]
+},
+{
+"id": "receptor",
+"title": "五类感受器（看前缀猜功能）",
+"tip": "mechano- 机械、chemo- 化学、phono- 声、olfact- 嗅、gust- 味。前缀认准了，中文直接能推。",
+"words": [
+"receptor (sensillum)",
+"sensory organ",
+"mechanoreceptor",
+"chemoreceptor",
+"phonoreceptor",
+"olfactory organ",
+"gustatory organ"
+]
+},
+{
+"id": "endo",
+"title": "激素与内分泌",
+"tip": "三个激素一条线：脑激素 → 蜕皮激素(MH) → 保幼激素(JH)。pheromone 是「外」激素，作用在体外（信息素）。",
+"words": [
+"hormone",
+"brain hormone",
+"molting hormone",
+"juvenile hormone",
+"pheromone",
+"sex pheromone",
+"endocrine system",
+"endocrine glands",
+"corpus cardiacum",
+"corpus allatum"
+]
+},
+{
+"id": "repro",
+"title": "生殖系统（雌雄两条线）",
+"tip": "雄：精巢 → 输精管 → 贮精囊 → 射精管 → 阳茎；雌：卵巢 → 侧输卵管 → 中输卵管 → 受精囊 → 产卵器。ov- 卵、sperm- 精、test- 精巢。",
+"words": [
+"reproductive system",
+"ovary",
+"lateral oviduct",
+"common oviduct",
+"spermatotheca",
+"bursa compulatrix",
+"accessory gland",
+"testes",
+"vas deferens",
+"seminal vesicle",
+"ejaculatory duct",
+"ovipositor",
+"valvula",
+"valvifer",
+"genitalia",
+"phallus"
+]
+},
+{
+"id": "taxon",
+"title": "分类阶元（从大到小）",
+"tip": "界 → 门 → 纲(class) → 目(order) → 科(family) → 属(genus) → 种(species)。classification 是「分」、identification 是「认」。",
+"words": [
+"classification",
+"class",
+"order",
+"family",
+"genus (pl. genera)",
+"species",
+"identification"
+]
+},
+{
+"id": "ptera",
+"title": "目名后缀 -ptera = 翅",
+"tip": "-ptera 就是「翅」（pterosaur 翼龙）。前缀决定是什么翅：di- 二、lepid- 鳞、hymen- 膜、coleo- 鞘、neuro- 脉、ortho- 直、iso- 等、thysan- 缨、hemi- 半。",
+"words": [
+"Diptera",
+"Lepidoptera",
+"Hymenoptera",
+"Coleoptera",
+"Neuroptera",
+"Orthoptera",
+"Isoptera",
+"Thysanoptera",
+"Hemiptera",
+"Blattodea",
+"Mantodea",
+"Odonata"
+]
+},
+{
+"id": "butterfly",
+"title": "蝶类四科（-idae 都是「科」）",
+"tip": "看拉丁词根认蝶：papilio 是「蝴蝶」本词、Pieris 是粉蝶属、nymph 是「仙女」、hesperos 是「黄昏」。只要 4 个，先记词根再记中文。",
+"words": [
+"Papilionidae",
+"Pieridae",
+"Nymphalidae",
+"Hesperiidae"
+]
+},
+{
+"id": "moth",
+"title": "蛾类各科",
+"tip": "蛾类的词根特别好用：geo+metron=量地、noct- 夜、tort- 扭、pyr- 火。看到 -idae 一律读「XX科」。",
+"words": [
+"Plutellidae",
+"Gelechiidae",
+"Tortricidae",
+"Pyralidae",
+"Geometridae",
+"Noctuidae",
+"Notodontidae"
+]
+},
+{
+"id": "beetle",
+"title": "甲虫各科",
+"tip": "甲虫全带 -idae：carab- 甲虫、scarab 圣甲虫、coccin- 猩红、tenebr- 黑暗、chryso- 金、curculio 象鼻虫。",
+"words": [
+"Carabidae",
+"Buprestidae",
+"Elateridae",
+"Coccinellidae",
+"Scarabaeidae",
+"Tenebrionidae",
+"Cerambycidae",
+"Chrysomelidae",
+"Curculionidae"
+]
+},
+{
+"id": "bugfam",
+"title": "蝽类与蚧",
+"tip": "penta- 五、mir- 奇异、antho- 花、coccus 谷粒/球。蝽类的科名基本是「前缀 + 蝽」。",
+"words": [
+"Pentatomidae",
+"Miridae",
+"Reduviidae",
+"Anthocoridae",
+"Coccoidea"
+]
+},
+{
+"id": "hymfam",
+"title": "蜂类与蚁",
+"tip": "蜂类的科名来自「蜂」的拉丁/希腊词：apis 蜜蜂、vespa 胡蜂、formica 蚁、ichneumon 追踪者。",
+"words": [
+"Tenthredinidae",
+"Ichneumonidae",
+"Braconidae",
+"Chalcididae",
+"Trichogrammatidae",
+"Formicidae",
+"Apidae",
+"Vespidae"
+]
+},
+{
+"id": "flyfam",
+"title": "蚊虻蝇（双翅目的科）",
+"tip": "myia 是希腊语的「蝇」：antho-+myia=花蝇；culex 蚊、tabanus 虻、musca 蝇 都是「它自己」。",
+"words": [
+"Culicidae",
+"Tabanidae",
+"Syrphidae",
+"Tachinidae",
+"Anthomyiidae",
+"Muscidae"
+]
+},
+{
+"id": "hoppers",
+"title": "蝉 / 叶蝉 / 飞虱 / 蚜 / 粉虱 / 蜡蝉",
+"tip": "这一类是「小一号」的命名游戏：Cicadidae 蝉 → Cicadellidae（-ella 表小）叶蝉；-idae 配不同前缀就是不同小虫。",
+"words": [
+"Cicadidae",
+"Cicadellidae",
+"Delphacidae",
+"Aphididae",
+"Aleyrodidae",
+"Fulgoridae",
+"Thripidae"
+]
+},
+{
+"id": "orthofam",
+"title": "螽斯 / 蟋蟀 / 蝼蛄 / 蝗 / 螳螂 / 草蛉",
+"tip": "gryllus 蟋蟀、locusta 蝗、mantis 螳螂；蝼蛄是 gryllus + talpa（鼹鼠）＝会挖洞的蟋蟀，这个词根最形象。",
+"words": [
+"Tettigoniidae",
+"Gryllidae",
+"Gryllotalpidae",
+"Locustidae",
+"Mantidae",
+"Chrysopidae"
+]
+},
+{
+"id": "develop",
+"title": "胚后发育与变态",
+"tip": "卵 → 幼虫(larva) → 蛹(pupa) → 成虫(imago)。每脱一次皮进一龄(instar)，两次脱皮之间这段时间叫龄期(stadium)。",
+"words": [
+"egg, or ovum",
+"larva",
+"pupa",
+"instar",
+"stadium",
+"moulting",
+"metamorphosis",
+"incomplete metamorphosis",
+"complete metamorphosis",
+"exarate pupa",
+"obtect pupa",
+"coarctate pupa",
+"emergence",
+"hatching",
+"embryonic development",
+"postembryonic development",
+"generation",
+"life history",
+"diapause",
+"dormancy"
+]
+},
+{
+"id": "reproduce",
+"title": "生殖方式（前缀看花眼就靠它）",
+"tip": "partheno- 处女、paedo- 幼体、poly- 多、vivi- 活。四个前缀对应四种特殊生殖方式。",
+"words": [
+"parthenogenesis",
+"paedogenesis",
+"polyembryony",
+"viviparity",
+"ovivipartity",
+"sexual dimorphism",
+"polymorphism"
+]
+},
+{
+"id": "ecology",
+"title": "生态层级（从小到大）",
+"tip": "个体 → 种群(population) → 群落(community) → 生态系统(ecosystem) → 生物圈(biosphere)。这条链子记住了，生态学的词基本都能挂上去。",
+"words": [
+"population",
+"community",
+"ecosystem",
+"biosphere",
+"niche",
+"producer",
+"consumer",
+"decomposer",
+"food chain",
+"food net",
+"mortality",
+"life table",
+"ecological balance, equilibrium",
+"economic threshold",
+"ecological valence",
+"population density",
+"population dynamic",
+"migration",
+"sex ratio",
+"bionomic strategy"
+]
+},
+{
+"id": "behavior",
+"title": "行为与适应",
+"tip": "taxis 是定向趋性（趋光/趋化），ethology 是研究行为的学科；mimicry 是学别人，protective coloration 是变色躲起来。",
+"words": [
+"behavior",
+"ethology",
+"taxis",
+"mimicry",
+"aggregation",
+"protective coloration",
+"critical photoperiod"
+]
+},
+{
+"id": "headpart",
+"title": "头与头部的沟",
+"tip": "从头前到后：额(frons) → 唇基(clypeus) → 后头(occiput)。幕骨(tentorium) 是头壳里面的「骨架」。",
+"words": [
+"head",
+"frons, or front",
+"clypeus",
+"occiput",
+"frontoclypeal sulcus",
+"tentorium",
+"ecdysial line",
+"eye, or compound eye",
+"ocellus"
+]
+},
+{
+"id": "bodypart",
+"title": "身体三段与体节",
+"tip": "头(head) → 胸(thorax) → 腹(abdomen)，一节叫体节(somite)。",
+"words": [
+"thorax",
+"abdomen",
+"somite",
+"endoskeleton"
+]
+},
+{
+"id": "wing",
+"title": "翅的类型",
+"tip": "甲虫前翅硬壳叫鞘翅(elytra)；蝗虫革质前翅叫覆翅(tegmen)；蝽前翅一半革一半膜叫半翅(hemielytron)。",
+"words": [
+"elytra",
+"tegmen",
+"hemielytron",
+"vein",
+"venation"
+]
+},
+{
+"id": "cuticle",
+"title": "体壁分层（由外到内）",
+"tip": "护蜡层 → 蜡层 → 上表皮(epicuticle) → 表皮层(cuticle) → 皮细胞层(epidermis)。",
+"words": [
+"tegument",
+"cuticle",
+"epicuticle",
+"cement layer",
+"wax layer",
+"chitin",
+"epidermis"
+]
+},
+{
+"id": "trachea",
+"title": "气管系统",
+"tip": "气门(spiracle) 进气 → 气管(trachea) → 微气管(tracheole) 直达细胞；气管膨大的地方叫气囊(air sac)。",
+"words": [
+"tracheal system",
+"trachea",
+"tracheole",
+"spiracle",
+"air sac"
+]
+}
+],
+"hooks": {
+"labrum": "labr- 唇；-um 收在上面 → 上唇",
+"labium": "labi- 唇；-ium 沉在下面 → 下唇",
+"mandible": "mand- = 嚼（mandere 咀嚼）→ 最先嚼的那对，上颚",
+"maxilla": "max- = 大（maximum）→ 第二对、结构更大更复杂，下颚",
+"hypopharynx": "hypo- 下 + pharynx 咽 → 咽下面的舌",
+"scape": "scape = 花葶/柱 → 像伞柄的那一节",
+"pedicel": "ped- 脚/柄 → 小一号的柄，夹在中间所以叫「梗」",
+"flagellum": "flagellum = 鞭子 → 末端细长多节",
+"coxa": "coxa = 髋 → 最靠身体的那节",
+"trochanter": "trochanter = 股骨转子 → 只会转的那一节",
+"femur": "femur = 大腿骨",
+"tibia": "tibia = 胫骨（小腿）",
+"tarsus": "tarsus = 跗骨/脚背 → 着地的那段",
+"tergum": "terg- = 背 → 背板",
+"sternum": "stern- 与胸骨同源，但昆虫里指腹板（别按人的胸骨记）",
+"pleuron": "pleur- = 肋/侧（pleurisy 胸膜炎）→ 侧板",
+"crop": "crop = 收成 → 先把食物「收」起来存着",
+"proventriculus": "pro- 前 + ventriculus 胃 → 胃前面那道「磨」",
+"gastric caeca": "caecum = 盲肠 → 胃上伸出的盲管",
+"Malpighian tube": "Malpighi 是解剖学家，这管子干的是昆虫「肾」的活",
+"ileum": "ileum 回肠（注意和 ilium 髂骨只差一个字母）",
+"colon": "colon 结肠（和「冒号」同形，别被英文标点带跑）",
+"peritrophic membrane": "peri- 周围 → 围在食物外面的那层膜",
+"oesophagus": "oesophagus = 食道（和 esophagus 同词异拼）",
+"haemolymph": "haemo- 血 + lymph 淋巴 → 昆虫的「血」",
+"haemocoele": "coele = 腔（coelom 体腔）→ 血腔",
+"hemocytes": "cyte = 细胞 → 血细胞",
+"dorsal vessel": "dorsal = 背 → 心脏所在的长管，昆虫的心在背上",
+"accessory pulsatile organ": "pulsatile = 会搏动的 → 辅助心脏泵血",
+"ganglion": "ganglion = 一团 → 神经节",
+"synapse": "syn- 相接 + haptein 触 → 突触",
+"neurone": "neur- 神经 → 神经原（元）",
+"acetyl choline": "缩写 Ach，神经末梢释放的递质",
+"ventral nerve cord": "ventral = 腹 → 昆虫神经索在腹侧（和脊椎动物相反）",
+"suboesophageal ganglion": "sub- 下 + oesophageal 食道的 → 咽下神经节，管口器",
+"mechanoreceptor": "mechan- = 机械 → 感触器",
+"chemoreceptor": "chem- = 化学 → 感化器",
+"phonoreceptor": "phon- = 声（phone 电话）→ 听觉器",
+"olfactory organ": "olfact- = 嗅 → 嗅觉器",
+"gustatory organ": "gust- = 尝（gusto 味道）→ 味觉器",
+"receptor (sensillum)": "re- 回 + cept 拿 → 把外界信号「接回来」的感受器",
+"molting hormone": "molt = 蜕皮 → 缩写 MH",
+"juvenile hormone": "juvenile = 幼年 → 缩写 JH，保幼激素",
+"pheromone": "phero- 携带 + hormone → 带到体外的激素（外激素）",
+"corpus cardiacum": "cardiac = 心 → 心侧体",
+"corpus allatum": "allatum 紧贴咽侧 → 咽侧体",
+"spermatotheca": "spermato- 精 + theca 匣 → 装精子的囊",
+"bursa compulatrix": "bursa = 囊 → 交尾囊",
+"valvifer": "ferre = 承载 → 负瓣（托着产卵瓣）",
+"ovipositor": "ovi- 卵 + positor 放 → 产卵器",
+"seminal vesicle": "seminal = 精的 → 贮精囊",
+"vas deferens": "vas = 管 + deferens 输送 → 输精管",
+"testes": "test- = 精巢（testis 的复数）",
+"genus (pl. genera)": "genus 属，复数把 -us 换成 -era → genera",
+"Coccoidea": "-oidea 是「总科」，所以是蚧总科，不是科",
+"Papilionidae": "papilio 就是拉丁语的「蝴蝶」→ 凤蝶科",
+"Pieridae": "Pieris 是粉蝶属 → 粉蝶科",
+"Nymphalidae": "nymph = 仙女 → 蛱蝶科（nymph 也指若虫，别混）",
+"Hesperiidae": "hesperos = 黄昏（Hesperus 长庚星）→ 黄昏才出来的弄蝶",
+"Plutellidae": "小菜蛾 Plutella xylostella 就是这个科",
+"Gelechiidae": "麦蛾科，储粮害虫那一类",
+"Tortricidae": "tort- = 扭（torture 折磨）→ 卷叶的卷蛾",
+"Pyralidae": "pyr- = 火（pyre 火葬堆）→ 螟蛾科",
+"Geometridae": "geo- 地 + metron 量 → 幼虫像拿尺子量地 = 尺蛾",
+"Noctuidae": "noct- = 夜（nocturnal 夜行）→ 夜蛾",
+"Notodontidae": "noto- 背 + odont- 齿 → 背上有齿状突起",
+"Carabidae": "karabos 是希腊语的「甲虫」→ 步甲",
+"Buprestidae": "buprestis 是古希腊说的「毒甲虫」→ 吉丁甲",
+"Elateridae": "elater = 弹跳者 → 会弹起来翻身的叩甲",
+"Coccinellidae": "coccin- = 猩红（胭脂虫 cochenille）→ 瓢甲",
+"Scarabaeidae": "scarab 圣甲虫 → 金龟甲",
+"Tenebrionidae": "tenebrae = 黑暗 → 拟步甲（面粉里的黄粉虫）",
+"Cerambycidae": "cerambyx = 触角很长的甲虫 → 天牛",
+"Chrysomelidae": "chryso- 金 + melon 苹果 → 叶甲",
+"Curculionidae": "curculio = 象鼻虫，喙像象鼻 → 象甲",
+"Pentatomidae": "penta- 五 → 触角五节 = 蝽",
+"Miridae": "mirus = 奇异 → 盲蝽",
+"Reduviidae": "猎蝽，捕食性（会吸血的那支是锥蝽）",
+"Anthocoridae": "antho- 花 + coris 蝽 → 花蝽",
+"Tenthredinidae": "tenthredon 希腊语「锯」→ 叶蜂产卵器像锯",
+"Ichneumonidae": "ichneumon = 追踪者 → 姬蜂（寄生蜂）",
+"Braconidae": "茧蜂，幼虫在寄主体内结茧",
+"Chalcididae": "小蜂科，chalc- 铜色 → 铜色小蜂",
+"Trichogrammatidae": "tricho- 毛 + gramma 纹 → 赤眼蜂",
+"Formicidae": "formica = 蚂蚁（另有同名的板材）",
+"Apidae": "apis = 蜜蜂（apiculture 养蜂）",
+"Vespidae": "vespa = 胡蜂",
+"Culicidae": "culex = 蚊（库蚊属 Culex）",
+"Tabanidae": "tabanus = 虻",
+"Syrphidae": "食蚜蝇，幼虫吃蚜虫",
+"Tachinidae": "寄蝇科，幼虫寄生在其他昆虫身上",
+"Anthomyiidae": "antho- 花 + myia 蝇 → 花蝇",
+"Muscidae": "musca = 蝇（家蝇 Musca domestica）",
+"Cicadidae": "cicada = 蝉",
+"Cicadellidae": "cicada + -ella（表小）→ 小叶蝉 = 叶蝉",
+"Delphacidae": "飞虱科（稻飞虱）",
+"Aphididae": "aphis = 蚜虫（靠吸汁）",
+"Aleyrodidae": "aleyron 希腊语「面粉」→ 粉虱",
+"Fulgoridae": "fulgor = 闪光 → 蜡蝉",
+"Thripidae": "thrips 本身就是「蓟马」",
+"Tettigoniidae": "tettigon = 螽斯",
+"Gryllidae": "gryllus = 蟋蟀",
+"Gryllotalpidae": "gryllus 蟋蟀 + talpa 鼹鼠 → 会挖洞的蝼蛄",
+"Locustidae": "locusta = 蝗虫（locust 蝗灾）",
+"Mantidae": "mantis = 螳螂（希腊语「先知」，祈祷姿势）",
+"Chrysopidae": "chryso- 金 + ops 眼 → 金眼草蛉",
+"Diptera": "di- = 二 → 双翅（蚊蝇只留一对翅）",
+"Lepidoptera": "lepid- = 鳞片 → 鳞翅（蝶蛾翅上全是鳞）",
+"Hymenoptera": "hymen- = 膜 → 膜翅（蜂蚁）",
+"Coleoptera": "coleo- = 鞘 → 鞘翅（甲虫）",
+"Neuroptera": "neuro- = 脉/神经 → 脉翅",
+"Orthoptera": "ortho- = 直 → 直翅（蝗虫蟋蟀）",
+"Isoptera": "iso- = 等 → 等翅（白蚁）",
+"Thysanoptera": "thysan- = 缨/流苏 → 缨翅（蓟马）",
+"Hemiptera": "hemi- = 半 → 半翅（蝽）",
+"Blattodea": "blatta = 蜚蠊 → 蜚蠊目",
+"Mantodea": "mantis = 螳螂 → 螳螂目",
+"Odonata": "odon = 齿 → 蜻蜓目（大颚有齿）",
+"instar": "instar = 处于某个形态 → 龄（第几龄）",
+"stadium": "stadium = 期间 → 龄期（这段「时间」）",
+"exarate pupa": "ex- 出 → 附肢露在外面的离蛹",
+"obtect pupa": "ob- 覆盖 → 附肢粘在体上的被蛹",
+"coarctate pupa": "coarct- 紧缩 → 外面还裹着幼虫皮的围蛹",
+"emergence": "e- 出 → 成虫从蛹里「钻出来」= 羽化",
+"hatching": "hatch = 破壳 → 孵化",
+"diapause": "dia- 穿过 + pause 停 → 主动「暂停」发育 = 滞育",
+"dormancy": "dormant = 睡着 → 休眠（被动）",
+"moulting": "moult = 换羽/蜕皮",
+"parthenogenesis": "partheno- = 处女（帕特农神庙 Parthenon）→ 孤雌生殖",
+"paedogenesis": "paedo- = 幼体（pediatrics 儿科）→ 幼体生殖",
+"polyembryony": "poly- 多 + embryo 胚 → 多胚生殖",
+"viviparity": "vivi- 活 + parity 生产 → 胎生",
+"ovivipartity": "ovi- 卵 + vivi- 活 → 卵胎生",
+"polymorphism": "poly- 多 + morph 形态 → 多型现象",
+"sexual dimorphism": "di- 二 + morph 形态 → 雌雄二型",
+"niche": "niche = 壁龛 → 物种待的那个「坑」= 生态位",
+"biosphere": "bio- 生 + sphere 球 → 生物圈",
+"ecosystem": "eco- 生态 + system 系统",
+"economic threshold": "threshold = 门槛 → 经济阈值",
+"producer": "produce = 生产 → 生产者（植物）",
+"consumer": "consume = 消费 → 消费者",
+"decomposer": "de- 分解 + compose 组成 → 分解者",
+"supercooling": "super- 过度 + cool 冷 → 过冷却现象",
+"taxis": "taxis = 趋向（phototaxis 趋光）→ 趋性",
+"mimicry": "mimic = 模仿 → 拟态",
+"aggregation": "aggregate = 聚集 → 群居集性",
+"ethology": "ethos = 习性 → 行为学",
+"occiput": "occiput = 枕骨/后脑 → 后头",
+"clypeus": "clipeus = 盾 → 唇基那块「盾」",
+"tentorium": "tentorium = 帐篷 → 撑住头壳的内骨骼",
+"ocellus": "ocellus 是「小眼睛」；大的是复眼 compound eye",
+"ecdysial line": "ecdysis = 蜕皮 → 蜕皮时裂开的那条线",
+"frontoclypeal sulcus": "fron(to) 额 + clypeal 唇基的 + sulcus 沟",
+"somite": "soma = 身体 → 体节",
+"endoskeleton": "endo- 内 → 内骨骼",
+"elytra": "elytron 的复数 → 甲虫的硬壳翅",
+"tegmen": "tegmen = 覆盖物 → 覆翅",
+"hemielytron": "hemi- 半 → 半翅（前翅一半革一半膜）",
+"venation": "vein 翅脉 + -ation → 脉序",
+"epicuticle": "epi- 上 → 上表皮",
+"chitin": "几丁质，节肢动物盔甲的材料",
+"cement layer": "cement = 水泥/黏合剂 → 护蜡层",
+"spiracle": "spirare = 呼吸 → 气门",
+"tracheole": "-ole 表小 → 微气管",
+"air sac": "sac = 囊 → 气囊",
+"sarcostyle": "sarco- = 肉（sarcoma 肉瘤）→ 肌原纤维",
+"muscle fiber": "fiber = 纤维 → 肌纤维",
+"entomology": "entomo- = 昆虫（entomology 昆虫学）+ -logy 学科",
+"anatomy": "ana- 分开 + tom 切 → 解剖",
+"immunity": "immune = 免疫 → 免疫作用",
+"fat body": "fat 脂肪 + body 体 → 脂肪体",
+"plasma": "plasma = 血浆（也是「等离子体」）",
+"aorta": "aorta = 主动脉 → 动脉",
+"cercus": "cercus = 尾须（cerc- 尾巴）",
+"phallus": "phallus = 阳茎",
+"valvula": "valva 瓣 + -ula 小 → 产卵瓣"
+}
+};
