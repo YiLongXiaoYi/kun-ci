@@ -211,10 +211,7 @@
       </div>
       <button class="btn ghost small" id="btnRankBack">← 返回首页</button>
     </div>
-
-    <div class="notice" id="backendNote" hidden></div>
-
-    <div class="rank-hero">
+<div class="rank-hero">
       <div class="rank-emblem" id="rankEmblem">🐛</div>
       <div class="rank-info">
         <div class="rank-line">
@@ -249,21 +246,17 @@
 
     <div class="panel">
       <div class="panel-head">
-        <h3>云端存档</h3>
-        <span class="muted">换设备不丢段位</span>
+        <h3>点对点直连</h3>
+        <span class="muted">没有服务器</span>
       </div>
       <div class="cloud-line">
-        <i class="cloud-dot" id="cloudDot"></i>
-        <span id="cloudText" class="muted">正在准备云端存档…</span>
+        <i class="cloud-dot ok" id="cloudDot"></i>
+        <span id="cloudText" class="muted">两人浏览器直连 · 段位与战绩存在本机</span>
       </div>
-      <div class="handoff-grid">
-        <button class="btn ghost small" id="btnHandoff">生成换机码</button>
-        <div class="redeem-row">
-          <input id="redeemCode" class="text-input code-input" maxlength="6" placeholder="输入换机码" autocapitalize="characters" spellcheck="false" />
-          <button class="btn ghost small" id="btnRedeem">接管存档</button>
-        </div>
-      </div>
-      <p class="fine" id="handoffOut">在这台设备生成 6 位换机码，到另一台设备「接管存档」，段位和战绩就过去了（10 分钟有效，只能用一次）。</p>
+      <p class="fine" id="handoffOut">
+        对战数据走 WebRTC 直连（加密、不经过服务器），只有「互相找到对方」用了一下 PeerJS 公共信令。
+        段位和战绩存在这台设备的浏览器里，换设备不会自动跟过去。
+      </p>
     </div>
 
     <div class="panel">
@@ -412,8 +405,8 @@
 <script src="data.js"></script>
 <script src="mnemonic.js"></script>
 <script src="rank.js"></script>
-<script src="profile.js"></script>
 <script src="app.js"></script>
+<script src="vendor/peerjs.min.js"></script>
 <script src="battle.js"></script>
 </body>
 </html>

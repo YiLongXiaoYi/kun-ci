@@ -59,13 +59,14 @@ window.RANK = (() => {
     };
   }
 
-  /** 成绩 -> 加减星与升降段 */
+  /** 成绩 -> 加减星与升降段（前两名加星，后面的扣星） */
   function apply(rank, place, playerCount) {
     const before = Math.max(0, Math.floor(rank.stars || 0));
     let delta = 0;
     if (playerCount >= 2) {
-      if (place === 1) delta = 1;
-      else if (place === playerCount) delta = -1;
+      if (playerCount === 2) delta = place === 1 ? 2 : -1;
+      else if (playerCount === 3) delta = place === 1 ? 2 : place === 2 ? 1 : -2;
+      else delta = place === 1 ? 2 : place === 2 ? 1 : place === 3 ? -1 : -2;
     }
     const after = Math.max(0, before + delta);
     const oldD = decode(before);
