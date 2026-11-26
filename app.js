@@ -16,7 +16,7 @@
   const state = {
     progress: {},
     days: {},
-    prefs: { size: 20, mode: "card", onlyNew: false, shuffle: true, scope: "all", mnemonic: true, theme: "auto" },
+    prefs: { size: 20, mode: "card", onlyNew: false, shuffle: true, scope: "all", mnemonic: true, theme: "auto", autoNext: true },
   };
   const ui = { scope: "all", view: "home" };
   let session = null;
@@ -87,6 +87,21 @@
       btn.textContent = dark ? "☀" : "🌙";
       btn.title = dark ? "切到亮色" : "切到暗色";
     }
+    const anBox = $("#autoNext");
+    if (anBox) {
+      anBox.onchange = (e) => {
+        state.prefs.autoNext = e.target.checked;
+        save();
+        if (e.target.checked) {
+          if (session && !session.review && !$("#nextRow").hidden) startAutoNext();
+        } else {
+          stopAutoNext();
+        }
+      };
+    }
+    const mnArea = $("#cardMnemonic");
+    if (mnArea) mnArea.addEventListener("pointerdown", () => stopAutoNext());
+
     document.querySelectorAll("#themeGrid button").forEach((b) => {
       b.classList.toggle("is-on", b.dataset.theme === pref);
     });
@@ -284,7 +299,46 @@
     return picked.map((x) => x.w.id);
   }
 
+  /* ---------------- 答完自动下一张 ---------------- */
+  const AUTO_NEXT_MS = 2500;
+  let autoTimer = null;
+
+  function stopAutoNext() {
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+    const n = $("#autoCount");
+    if (n) n.hidden = true;
+  }
+
+  function startAutoNext() {
+    stopAutoNext();
+    if (!session || session.review) return;
+    if (state.prefs.autoNext === false) return;
+    if ($("#nextRow").hidden) return;
+
+    session.autoDeadline = Date.now() + AUTO_NEXT_MS;
+    const n = $("#autoCount");
+    const tick = () => {
+      const left = session.autoDeadline - Date.now();
+      if (!session || session.review) return stopAutoNext();
+      if (left <= 0) {
+        stopAutoNext();
+        nextCard();
+        return;
+      }
+      if (n) {
+        n.hidden = false;
+        n.textContent = (left / 1000).toFixed(1) + "s";
+      }
+    };
+    tick();
+    autoTimer = setInterval(tick, 100);
+  }
+
   function startSession(scope) {
+    stopAutoNext();
     const queue = buildQueue(scope);
     if (!queue.length) {
       toast("这个范围暂时没有可练的词");
@@ -326,6 +380,7 @@
   }
 
   function renderCard() {
+    stopAutoNext();
     session.review = null;
     const id = session.queue[session.p];
     const w = byId.get(id);
@@ -600,6 +655,7 @@
     $("#card").classList.add(known ? "is-known" : "is-miss");
     session.active = false;
     syncPrevBtn();
+    startAutoNext();
   }
 
   function dueLabel(ts) {
@@ -651,6 +707,7 @@
   /* ---------------- 回看上一题 ---------------- */
   function showPrev() {
     if (!session || !session.history.length) return toast("还没有可以回看的题");
+    stopAutoNext();
     const entry = session.history[session.history.length - 1];
     const w = byId.get(entry.id);
     session.review = entry;
@@ -769,9 +826,11 @@
     }
     if (spell) {
       revealSpell(w, { ok: cur.verdict === "known", close: false }, cur.typed || "", !!cur.viaAssess);
+      stopAutoNext();
       return;
     }
     revealAnswer(w, cur.verdict === "known", session.mode === "quiz", !cur.chosenZh);
+    stopAutoNext();
   }
 
   /* ---------------- 中译英拼写 ---------------- */
@@ -899,6 +958,7 @@
     $("#card").classList.add(g.ok ? "is-known" : "is-miss");
     session.active = false;
     syncPrevBtn();
+    startAutoNext();
   }
 
   /** 卡片模式的「认识 / 不认识」（Q、E、空格、1、2 都走这里） */
@@ -921,6 +981,7 @@
   }
 
   function nextCard() {
+    stopAutoNext();
     if (session.review) return exitReview();
     session.p++;
     const pct = (session.p / Math.max(session.queue.length, 1)) * 100;
@@ -1276,6 +1337,8 @@
     $("#shuffleAll").checked = !!state.prefs.shuffle;
     const mn = $("#showMnemonic");
     if (mn) mn.checked = state.prefs.mnemonic !== false;
+    const an = $("#autoNext");
+    if (an) an.checked = state.prefs.autoNext !== false;
     document.querySelectorAll("#themeGrid button").forEach((b) => {
       b.classList.toggle("is-on", b.dataset.theme === (state.prefs.theme || "auto"));
     });
@@ -1365,6 +1428,7 @@
     };
 
     $("#btnQuit").onclick = () => {
+      stopAutoNext();
       const done = session ? session.right + session.wrong : 0;
       if (done > 0) {
         finish();

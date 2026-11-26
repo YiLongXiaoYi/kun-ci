@@ -1869,3 +1869,15 @@ kbd {
   .spell { flex-direction: column; }
   .spell .btn { width: 100%; }
 }
+
+/* ---------- 自动下一张的倒计时 ---------- */
+.auto-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  color: inherit;
+  opacity: 0.9;
+}
+.btn.primary .auto-count { background: rgba(0, 20, 12, 0.16); }

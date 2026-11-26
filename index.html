@@ -155,7 +155,11 @@
       <button class="btn success" id="btnKnown">认识 <kbd>2</kbd></button>
     </div>
     <div class="answer-row" id="nextRow" hidden>
-      <button class="btn primary wide" id="btnNext">下一张 <kbd>空格</kbd></button>
+      <button class="btn primary wide" id="btnNext">
+        <span>下一张</span>
+        <span class="auto-count" id="autoCount" hidden></span>
+        <kbd>空格</kbd>
+      </button>
     </div>
     <div class="answer-row" id="reviewRow" hidden>
       <button class="btn ghost wide" id="btnExitReview">返回当前题 <kbd>Esc</kbd></button>
@@ -426,6 +430,7 @@
     <div class="field">
       <label>联想记忆</label>
       <label class="check"><input type="checkbox" id="showMnemonic" /> <span>答完显示词根与同族词对比</span></label>
+      <label class="check"><input type="checkbox" id="autoNext" /> <span>答完自动下一张（2.5 秒，按 E / 空格可打断）</span></label>
     </div>
     <p class="fine">进度保存在浏览器 localStorage 中，换设备请用导出/导入迁移。</p>
   </div>
