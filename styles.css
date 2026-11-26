@@ -1780,3 +1780,92 @@ kbd {
 .notice b { color: var(--accent-ink); }
 .notice .notice-sub { display: block; margin-top: 4px; color: var(--ink-dim); font-size: 12.5px; }
 .btn:disabled[data-static] { cursor: not-allowed; }
+
+/* ---------- 词库 / 查词 ---------- */
+.word-list { display: flex; flex-direction: column; gap: 6px; }
+.word-item {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.word-item.is-open { border-color: var(--accent-line); }
+.wi-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wi-head:hover { background: var(--fill-1); }
+.wi-left { flex: 1; min-width: 0; }
+.wi-en {
+  display: block;
+  font-family: var(--serif);
+  font-size: 16.5px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+}
+.wi-zh { display: block; font-size: 12.5px; color: var(--ink-dim); margin-top: 1px; }
+.wi-right { display: flex; align-items: center; gap: 10px; flex: none; }
+.wi-state { font-size: 11.5px; color: var(--ink-faint); min-width: 3.4em; text-align: right; }
+.wi-cat {
+  font-size: 10.5px;
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.wi-detail {
+  padding: 4px 13px 13px;
+  border-top: 1px dashed var(--line);
+  animation: rise 0.2s ease;
+}
+.wi-detail .mnemonic { margin-top: 10px; border: 0; padding: 0; background: none; }
+.wi-detail .mnemonic.plain { border: 0; background: none; padding: 0; }
+.wi-stats { font-size: 12px; color: var(--ink-faint); margin-top: 10px; }
+.wi-acts { display: flex; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
+@media (max-width: 560px) {
+  .wi-cat { display: none; }
+  .wi-state { min-width: 0; }
+  .wi-en { font-size: 15.5px; }
+}
+
+/* ---------- 中译英拼写 ---------- */
+.spell {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.spell-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  padding: 12px 14px;
+}
+.spell .btn { flex: none; }
+.spell-feedback {
+  margin-top: 10px;
+  font-size: 12.5px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--fill-1);
+  color: var(--ink-dim);
+  word-break: break-word;
+}
+.spell-feedback.ok { border-color: var(--ok-line); background: var(--ok-bg); color: var(--ok-ink); }
+.spell-feedback.bad { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad-ink); }
+.card-word.is-cn { font-family: var(--sans); font-size: clamp(24px, 5vw, 38px); font-weight: 550; letter-spacing: 0.01em; }
+@media (max-width: 560px) {
+  .spell { flex-direction: column; }
+  .spell .btn { width: 100%; }
+}

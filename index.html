@@ -100,8 +100,9 @@
         <span class="muted" id="masterySummary"></span>
       </div>
       <div class="bars" id="masteryBars"></div>
-      <div class="panel-foot">
-        <button class="link-btn" id="btnOpenBook">查看错词本 →</button>
+      <div class="btn-row">
+        <button class="link-btn" id="btnOpenBook">错词本 →</button>
+        <button class="link-btn" id="btnOpenWords">查词 / 词库 →</button>
       </div>
     </div>
 
@@ -139,6 +140,12 @@
       </div>
 
       <div class="options" id="cardOptions" hidden></div>
+
+      <div class="spell" id="spellBox" hidden>
+        <input id="spellInput" class="text-input spell-input" placeholder="写出英文（只写核心词也行）" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <button class="btn primary" id="btnSpellSubmit">提交 <kbd>Enter</kbd></button>
+      </div>
+      <div class="spell-feedback" id="spellFeedback" hidden></div>
 
       <div class="card-hint" id="cardHint">空格 = 认识 · 1 = 不认识 · 选完自动显示中文</div>
     </div>
@@ -200,6 +207,29 @@
       </select>
     </div>
     <div class="book-list" id="bookList"></div>
+  </section>
+
+  <!-- ==================== 词库 / 查词 ==================== -->
+  <section class="view" id="view-words">
+    <div class="panel-head page-head">
+      <div>
+        <h2>词库</h2>
+        <p class="muted" id="wordsSub">257 个词</p>
+      </div>
+      <button class="btn ghost small" id="btnWordsBack">← 返回</button>
+    </div>
+    <div class="book-tools">
+      <input type="search" id="wordSearch" placeholder="搜英文或中文…" />
+      <select id="wordStatus">
+        <option value="all">全部状态</option>
+        <option value="new">没练过</option>
+        <option value="learning">学习中</option>
+        <option value="mastered">已掌握</option>
+        <option value="wrong">错过的</option>
+      </select>
+    </div>
+    <div class="chips" id="wordCats"></div>
+    <div class="word-list" id="wordList"></div>
   </section>
 
   <!-- ==================== 排位主页 ==================== -->
@@ -369,6 +399,7 @@
       <div class="segmented" id="modeSeg">
         <button data-mode="card">自评卡片</button>
         <button data-mode="quiz">四选一考核</button>
+        <button data-mode="spell">中译英拼写</button>
       </div>
     </div>
     <div class="field">

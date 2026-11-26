@@ -305,7 +305,8 @@
       cur: null,
       review: null,
     };
-    $("#modeTag").textContent = session.mode === "quiz" ? "四选一" : "卡片";
+    $("#modeTag").textContent =
+      session.mode === "quiz" ? "四选一" : session.mode === "spell" ? "中译英" : "卡片";
     show("study");
     renderCard();
   }
@@ -335,8 +336,11 @@
     const card = $("#card");
     card.classList.remove("is-known", "is-miss");
 
-    $("#cardWord").textContent = w.en;
+    // 拼写模式考的是「中 → 英」，卡面显示中文
+    const spell = session.mode === "spell";
+    $("#cardWord").textContent = spell ? w.zh : w.en;
     $("#cardWord").classList.remove("is-small");
+    $("#cardWord").classList.toggle("is-cn", spell);
     $("#cardCat").textContent = w.cat;
     stageDots(p.stage);
 
@@ -345,6 +349,8 @@
     $("#reviewRow").hidden = true;
     $("#cardOptions").hidden = true;
     $("#cardOptions").innerHTML = "";
+    $("#spellFeedback").hidden = true;
+    $("#spellFeedback").textContent = "";
     $("#cardHint").hidden = false;
     syncPrevBtn();
 
@@ -353,15 +359,31 @@
     $("#studyBarFill").style.width = Math.min(100, pct) + "%";
 
     if (session.mode === "quiz") {
+      $("#spellBox").hidden = true;
       $("#answerRow").hidden = true;
       renderOptions(w);
-    } else {
-      $("#answerRow").hidden = false;
-      $("#btnKnown").disabled = false;
-      $("#btnUnknown").disabled = false;
-      $("#cardHint").textContent = "空格 认识 · 1 不认识 · Q 认识 · E 不认识";
-      session.active = true;
+      return;
     }
+
+    if (spell) {
+      $("#spellBox").hidden = false;
+      $("#answerRow").hidden = true;
+      const input = $("#spellInput");
+      input.value = "";
+      input.disabled = false;
+      $("#btnSpellSubmit").disabled = false;
+      $("#cardHint").textContent = "看中文，写出英文 · 只写主词也算对 · Enter 提交";
+      session.active = true;
+      setTimeout(() => input.focus(), 30);
+      return;
+    }
+
+    $("#spellBox").hidden = true;
+    $("#answerRow").hidden = false;
+    $("#btnKnown").disabled = false;
+    $("#btnUnknown").disabled = false;
+    $("#cardHint").textContent = "空格 认识 · 1 不认识 · Q 认识 · E 不认识";
+    session.active = true;
   }
 
   /** 造一个选项按钮；Q/E 是自评键，WASD 是四个选项 */
@@ -475,6 +497,12 @@
       if (session.mode === "quiz") decorateOptions(w, null, true);
       record(w.id, want, false);
       pushHistory(cur);
+      if (session.mode === "spell") {
+        $("#spellInput").disabled = true;
+        $("#btnSpellSubmit").disabled = true;
+        revealSpell(w, { ok: want, close: false }, cur.typed || "", true);
+        return;
+      }
       revealAnswer(w, want, session.mode === "quiz", true);
       return;
     }
@@ -517,10 +545,15 @@
 
     save();
     updatePills();
-    revealAnswer(byId.get(id), toKnown, session.mode === "quiz", true);
-    if (!toKnown) {
-      const right = $("#cardOptions .option.is-right");
-      if (right) right.classList.add("is-guessed");
+    const w = byId.get(id);
+    if (session.mode === "spell") {
+      revealSpell(w, { ok: toKnown, close: false }, cur.typed || "", true);
+    } else {
+      revealAnswer(w, toKnown, session.mode === "quiz", true);
+      if (!toKnown) {
+        const right = $("#cardOptions .option.is-right");
+        if (right) right.classList.add("is-guessed");
+      }
     }
     toast(toKnown ? "已改记「认识」" : "已改记「不认识」，本词会重点复习");
   }
@@ -532,6 +565,7 @@
       chosenZh: cur.chosenZh || null,
       viaAssess: !!cur.viaAssess,
       options: cur.options.slice(),
+      typed: cur.typed || null,
       mode: session.mode,
       at: Date.now(),
     };
@@ -626,10 +660,18 @@
     card.classList.remove("is-known", "is-miss");
     card.classList.add(entry.known ? "is-known" : "is-miss");
 
-    $("#cardWord").textContent = w.en;
+    const spellEntry = entry.mode === "spell";
+    $("#cardWord").textContent = spellEntry ? w.zh : w.en;
     $("#cardWord").classList.toggle("is-small", entry.mode === "quiz");
+    $("#cardWord").classList.toggle("is-cn", spellEntry);
     $("#cardCat").textContent = w.cat;
     stageDots(Math.min(prog(w.id).stage, MASTER));
+    $("#spellBox").hidden = !spellEntry;
+    if (spellEntry) {
+      $("#spellInput").disabled = true;
+      $("#spellInput").value = entry.typed || "";
+      $("#btnSpellSubmit").disabled = true;
+    }
 
     const box = $("#cardOptions");
     box.innerHTML = "";
@@ -659,14 +701,16 @@
 
     $("#cardReveal").hidden = false;
     $("#cardAnswer").hidden = false;
-    $("#cardAnswer").textContent = w.zh;
+    $("#cardAnswer").textContent = spellEntry ? w.en : w.zh;
     const bits = ["回看上一题"];
     bits.push(entry.known ? "当时记作「认识」" : "当时记作「不认识」");
-    if (entry.viaAssess) bits.push("用 Q/E 直接自评");
+    if (spellEntry) bits.push(entry.typed ? "你写的是「" + entry.typed + "」" : "没写");
+    else if (entry.viaAssess) bits.push("用 Q/E 直接自评");
     else if (entry.chosenZh && entry.chosenZh !== w.zh) bits.push("点的是「" + entry.chosenZh + "」");
     $("#cardNote").textContent = bits.join(" · ");
     renderMnemonic(w);
 
+    $("#spellFeedback").hidden = true;
     $("#answerRow").hidden = true;
     $("#nextRow").hidden = true;
     $("#reviewRow").hidden = false;
@@ -684,9 +728,17 @@
     }
     // 当前题已经答过：把已答状态还原
     const w = byId.get(cur.id);
-    $("#cardWord").textContent = w.en;
+    const spell = session.mode === "spell";
+    $("#cardWord").textContent = spell ? w.zh : w.en;
     $("#cardWord").classList.toggle("is-small", session.mode === "quiz");
+    $("#cardWord").classList.toggle("is-cn", spell);
     $("#cardCat").textContent = w.cat;
+    if (spell) {
+      $("#spellBox").hidden = false;
+      $("#spellInput").disabled = true;
+      $("#spellInput").value = cur.typed || "";
+      $("#btnSpellSubmit").disabled = true;
+    }
     const box = $("#cardOptions");
     box.innerHTML = "";
     box.hidden = true;
@@ -715,7 +767,138 @@
       e.onclick = () => assess("unknown");
       box.appendChild(e);
     }
+    if (spell) {
+      revealSpell(w, { ok: cur.verdict === "known", close: false }, cur.typed || "", !!cur.viaAssess);
+      return;
+    }
     revealAnswer(w, cur.verdict === "known", session.mode === "quiz", !cur.chosenZh);
+  }
+
+  /* ---------------- 中译英拼写 ---------------- */
+  function normalizeSpell(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/\([^)]*\)/g, " ")
+      .replace(/[^a-z\s]/g, " ") // 连字符也当空格，ecdysial-line == ecdysial line
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  /** 一个词条可能接受的多种写法：去掉括号说明，逗号/or 分隔的别名都算对 */
+  function spellCandidates(w) {
+    const raw = String(w.en || "");
+    const set = new Set();
+    const push = (x) => {
+      const n = normalizeSpell(x);
+      if (n) set.add(n);
+    };
+    push(raw.replace(/\([^)]*\)/g, " "));
+    raw
+      .replace(/\([^)]*\)/g, " ")
+      .split(/,|\bor\b/)
+      .forEach(push);
+    // 括号里的别名也算对：genus (pl. genera) → genera
+    (raw.match(/\(([^)]*)\)/g) || []).forEach((g) => {
+      g.slice(1, -1)
+        .replace(/\bpl\.?\b/gi, " ")
+        .split(/,|\bor\b/)
+        .forEach(push);
+    });
+    return Array.from(set);
+  }
+
+  function levenshtein(a, b) {
+    if (a === b) return 0;
+    const m = a.length, n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    let prev = Array.from({ length: n + 1 }, (_, i) => i);
+    for (let i = 1; i <= m; i++) {
+      const cur = [i];
+      for (let j = 1; j <= n; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  function gradeSpell(w, input) {
+    const ans = normalizeSpell(input);
+    if (!ans) return { ok: false, close: false };
+    const cands = spellCandidates(w);
+    for (const c of cands) if (c === ans) return { ok: true, close: false };
+    // 长词允许差一两个字母（entomologie 这种常见拼错）
+    for (const c of cands) {
+      const d = levenshtein(c, ans);
+      if (Math.abs(c.length - ans.length) > 3) continue;
+      if (c.length >= 10 && d <= 2) return { ok: true, close: true };
+      if (c.length >= 6 && d <= 1) return { ok: true, close: true };
+    }
+    // 多词术语只写第一个词也算对（genus (pl. genera) → genus）
+    for (const c of cands) {
+      if (c.includes(" ") && ans === c.split(" ")[0]) return { ok: true, close: false };
+    }
+    // 单复数容错：eye / eyes、sensillum / sensilla 这种
+    for (const c of cands) {
+      if (ans === c + "s" || ans === c + "es") return { ok: true, close: true };
+      if (c === ans + "s" || c === ans + "es") return { ok: true, close: true };
+    }
+    return { ok: false, close: false };
+  }
+
+  function answerSpell() {
+    if (!session || session.review || session.mode !== "spell") return;
+    const cur = session.cur;
+    if (!cur || cur.answered) return;
+    const w = byId.get(cur.id);
+    const input = $("#spellInput");
+    const typed = input.value;
+    const g = gradeSpell(w, typed);
+
+    cur.answered = true;
+    cur.verdict = g.ok ? "known" : "unknown";
+    cur.typed = typed.trim();
+    cur.viaAssess = false;
+    input.disabled = true;
+    input.blur();
+    $("#btnSpellSubmit").disabled = true;
+
+    record(w.id, g.ok, true);
+    pushHistory(cur);
+    revealSpell(w, g, typed);
+  }
+
+  function revealSpell(w, g, typed, viaKey) {
+    const p = prog(w.id);
+    $("#cardReveal").hidden = false;
+    $("#cardAnswer").hidden = false;
+    $("#cardAnswer").textContent = w.en;
+
+    const bits = [];
+    if (viaKey) bits.push(g.ok ? "✓ 认识" : "✗ 不认识");
+    else bits.push(g.ok ? (g.close ? "✓ 写对了（差一个字母）" : "✓ 写对了") : "✗ 写错了");
+    bits.push("练过 " + (p.right + p.wrong) + " 次");
+    if (p.wrong > 0) bits.push("错 " + p.wrong + " 次");
+    bits.push(p.stage >= MASTER ? "已掌握" : "连对阶段 " + p.stage + "/" + MASTER);
+    $("#cardNote").textContent = bits.join(" · ");
+    stageDots(Math.min(p.stage, MASTER));
+    renderMnemonic(w);
+
+    const fb = $("#spellFeedback");
+    fb.hidden = false;
+    fb.className = "spell-feedback " + (g.ok ? "ok" : "bad");
+    if (viaKey) fb.textContent = "用 Q / E 直接判定，没写拼写";
+    else if (typed && typed.trim()) fb.textContent = "你写的是：" + typed.trim();
+    else fb.textContent = "没写就提交了";
+
+    $("#answerRow").hidden = true;
+    $("#nextRow").hidden = false;
+    $("#reviewRow").hidden = true;
+    $("#cardHint").hidden = true;
+    $("#card").classList.add(g.ok ? "is-known" : "is-miss");
+    session.active = false;
+    syncPrevBtn();
   }
 
   /** 卡片模式的「认识 / 不认识」（Q、E、空格、1、2 都走这里） */
@@ -760,19 +943,14 @@
     return mnIndex;
   }
 
-  /** 在答案下面渲染词根钩子 + 同族词对照 */
-  function renderMnemonic(w) {
-    const box = $("#cardMnemonic");
-    box.innerHTML = "";
-    box.hidden = true;
-    if (!MNEMO || !state.prefs.mnemonic) return;
-
+  /** 造一个「词根钩子 + 同族词」节点；没有数据时返回 null */
+  function buildMnemonic(w) {
+    if (!MNEMO || state.prefs.mnemonic === false) return null;
     const idx = mnemIndex();
     const fam = idx && idx.fam.get(w.en);
     const hook = MNEMO.hooks[w.en];
-    if (!fam && !hook) return;
-
-    box.hidden = false;
+    if (!fam && !hook) return null;
+    const box = el("div", "mnemonic");
 
     if (hook) {
       const h = el("p", "mn-hook");
@@ -813,6 +991,21 @@
         box.appendChild(el("p", "mn-more", extra));
       }
     }
+    return box;
+  }
+
+  /** 在答案下面渲染联想记忆 */
+  function renderMnemonic(w) {
+    const box = $("#cardMnemonic");
+    box.innerHTML = "";
+    const node = buildMnemonic(w);
+    if (!node) {
+      box.hidden = true;
+      return;
+    }
+    node.className = "mnemonic plain";
+    box.hidden = false;
+    box.appendChild(node);
   }
 
   /* ---------------- 结果页 ---------------- */
@@ -854,6 +1047,145 @@
 
     renderHome();
     show("result");
+  }
+
+  /* ---------------- 词库 / 查词 ---------------- */
+  let wordCat = "all";
+
+  function statusOf(w) {
+    const p = prog(w.id);
+    if (p.stage >= MASTER) return "mastered";
+    if (p.stage >= 1) return "learning";
+    return "new";
+  }
+
+  function renderWordCats() {
+    const box = $("#wordCats");
+    box.innerHTML = "";
+    const mk = (id, label, n) => {
+      const b = el("button", "chip" + (wordCat === id ? " is-on" : ""), label);
+      b.appendChild(el("em", null, String(n)));
+      b.onclick = () => {
+        wordCat = id;
+        renderWords();
+      };
+      return b;
+    };
+    box.appendChild(mk("all", "全部", WORDS.length));
+    CATS.forEach((c) => box.appendChild(mk(c, c, WORDS.filter((w) => w.cat === c).length)));
+  }
+
+  function wordsFiltered() {
+    const q = ($("#wordSearch").value || "").trim().toLowerCase();
+    const st = $("#wordStatus").value;
+    return WORDS.filter((w) => {
+      if (wordCat !== "all" && w.cat !== wordCat) return false;
+      if (st === "wrong") {
+        if (!(prog(w.id).wrong > 0)) return false;
+      } else if (st !== "all" && statusOf(w) !== st) {
+        return false;
+      }
+      if (q) {
+        const hay = (w.en + " " + w.zh).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderWords() {
+    renderWordCats();
+    const list = wordsFiltered();
+    $("#wordsSub").textContent = list.length + " / " + WORDS.length + " 个词";
+    const box = $("#wordList");
+    box.innerHTML = "";
+    if (!list.length) {
+      box.appendChild(el("div", "book-empty", "没找到匹配的词，换个关键词试试"));
+      return;
+    }
+    list.slice(0, 300).forEach((w) => box.appendChild(wordRow(w)));
+    if (list.length > 300) {
+      box.appendChild(el("p", "mn-more", `还有 ${list.length - 300} 个，缩小范围或加关键词`));
+    }
+  }
+
+  function wordRow(w) {
+    const p = prog(w.id);
+    const row = el("div", "word-item");
+    const head = el("button", "wi-head");
+    head.onclick = () => {
+      const open = row.classList.toggle("is-open");
+      const detail = row.querySelector(".wi-detail");
+      if (!detail) return;
+      detail.hidden = !open;
+      if (open && !detail.dataset.built) {
+        detail.dataset.built = "1";
+        buildWordDetail(w, detail);
+      }
+    };
+
+    const left = el("div", "wi-left");
+    left.appendChild(el("b", "wi-en", w.en));
+    left.appendChild(el("span", "wi-zh", w.zh));
+    head.appendChild(left);
+
+    const right = el("div", "wi-right");
+    const dots = el("span", "dotline");
+    for (let i = 0; i < MASTER; i++) dots.appendChild(el("i", p.stage > i ? "on" : ""));
+    right.appendChild(dots);
+    right.appendChild(el("span", "wi-state", p.stage >= MASTER ? "已掌握" : p.stage > 0 ? "学习中" : "没练过"));
+    right.appendChild(el("span", "wi-cat", w.cat));
+    head.appendChild(right);
+
+    row.appendChild(head);
+    const detail = el("div", "wi-detail");
+    detail.hidden = true;
+    row.appendChild(detail);
+    return row;
+  }
+
+  function buildWordDetail(w, box) {
+    const p = prog(w.id);
+    const mn = buildMnemonic(w);
+    if (mn) box.appendChild(mn);
+    else box.appendChild(el("p", "mn-more", "这个词暂时没有词根/同族数据"));
+
+    const meta = el("div", "wi-stats");
+    const bits = ["练过 " + (p.right + p.wrong) + " 次"];
+    if (p.wrong) bits.push("错 " + p.wrong + " 次");
+    bits.push(p.stage >= MASTER ? "已掌握" : "连对阶段 " + p.stage + "/" + MASTER);
+    if (p.last) bits.push("上次 " + dueLabel(p.last));
+    if (p.last) bits.push("下次 " + dueLabel(p.due));
+    meta.textContent = bits.join(" · ");
+    box.appendChild(meta);
+
+    const acts = el("div", "wi-acts");
+    const bSpeak = el("button", "mini-btn", "🔊 朗读");
+    bSpeak.onclick = () => speak(w.en);
+    const bMaster = el("button", "mini-btn", "标记掌握");
+    bMaster.onclick = () => {
+      const q = prog(w.id);
+      q.stage = MASTER;
+      q.due = Date.now() + INTERVALS[6];
+      q.last = Date.now();
+      setProg(w.id, q);
+      save();
+      renderWords();
+      renderHome();
+      toast("已标记掌握：" + w.en);
+    };
+    const bReset = el("button", "mini-btn", "重置这个词");
+    bReset.onclick = () => {
+      setProg(w.id, { stage: 0, right: 0, wrong: 0, due: 0, last: 0 });
+      save();
+      renderWords();
+      renderHome();
+      toast("已重置：" + w.en);
+    };
+    acts.appendChild(bSpeak);
+    acts.appendChild(bMaster);
+    acts.appendChild(bReset);
+    box.appendChild(acts);
   }
 
   /* ---------------- 错词本 ---------------- */
@@ -1013,6 +1345,17 @@
     $("#btnKnown").onclick = () => answerCard(true);
     $("#btnUnknown").onclick = () => answerCard(false);
     $("#btnNext").onclick = nextCard;
+    const spellBtn = $("#btnSpellSubmit");
+    if (spellBtn) spellBtn.onclick = () => answerSpell();
+    const spellInput = $("#spellInput");
+    if (spellInput) {
+      spellInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          answerSpell();
+        }
+      });
+    }
     $("#btnPrev").onclick = () => (session && session.review ? exitReview() : showPrev());
     $("#btnExitReview").onclick = () => exitReview();
 
@@ -1064,7 +1407,13 @@
         state.prefs.mode = b.dataset.mode;
         save();
         renderSettings();
-        toast(b.dataset.mode === "quiz" ? "已切换：四选一考核" : "已切换：自评卡片");
+        toast(
+          b.dataset.mode === "quiz"
+            ? "已切换：四选一考核"
+            : b.dataset.mode === "spell"
+            ? "已切换：中译英拼写"
+            : "已切换：自评卡片"
+        );
       };
     });
 
@@ -1139,6 +1488,20 @@
       ui.scope = "book";
       startSession("book");
     };
+
+    const openWords = () => {
+      renderWords();
+      show("words");
+      setTimeout(() => $("#wordSearch").focus(), 60);
+    };
+    const openBookBtn = $("#btnOpenWords");
+    if (openBookBtn) openBookBtn.onclick = openWords;
+    $("#btnWordsBack").onclick = () => {
+      show("home");
+      renderHome();
+    };
+    $("#wordSearch").oninput = renderWords;
+    $("#wordStatus").onchange = renderWords;
 
     document.addEventListener("keydown", (e) => {
       const tag = (e.target.tagName || "").toLowerCase();
@@ -1225,9 +1588,12 @@
       }
     });
 
-    // 首页 / 错词本 底部导航：用 Esc 返回
+    // 错词本 / 词库：Esc 返回首页
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && ui.view === "book") {
+      if (e.key !== "Escape") return;
+      const tag = (e.target.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "select" || tag === "textarea") return;
+      if (ui.view === "book" || ui.view === "words") {
         show("home");
         renderHome();
       }
@@ -1242,11 +1608,12 @@
     renderSettings();
     renderHome();
     renderBook();
+    renderWords();
     show("home");
   }
 
   // 供 battle.js 复用
-  window.KW = { show, toast, refreshHome: renderHome, refreshPills: updatePills, words: WORDS, applyTheme };
+  window.KW = { show, toast, refreshHome: renderHome, refreshPills: updatePills, words: WORDS, applyTheme, gradeSpell };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
