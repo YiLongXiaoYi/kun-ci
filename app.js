@@ -1580,6 +1580,20 @@
         openModal(false);
         return;
       }
+
+      // 结算画面：Q = 再来一轮，E = 回到首页
+      if (ui.view === "result") {
+        const tut = $("#tutorial");
+        if (!$("#modal").hidden || (tut && !tut.hidden)) return;
+        if (e.repeat) return;
+        const rk = String(e.key || "").toLowerCase();
+        if (rk === "q" || rk === "e") {
+          e.preventDefault();
+          $(rk === "q" ? "#btnAgain" : "#btnHome").click();
+        }
+        return;
+      }
+
       if (ui.view !== "study" || !session) return;
 
       // 回看模式：Esc / Backspace / 空格 都退回当前题

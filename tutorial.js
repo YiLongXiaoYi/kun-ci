@@ -46,6 +46,7 @@
           <tr><td><kbd>1</kbd> 或 <kbd>←</kbd></td><td>不认识</td><td>卡片</td></tr>
           <tr><td><kbd>2</kbd> 或 <kbd>→</kbd></td><td>认识</td><td>卡片</td></tr>
           <tr><td><kbd>Backspace</kbd></td><td>回看上一题（选项、你选了什么、正确答案）</td><td>全部模式</td></tr>
+          <tr><td><kbd>Q</kbd> / <kbd>E</kbd></td><td>结算画面：<b>再来一轮</b> / <b>回到首页</b></td><td>本轮结果</td></tr>
           <tr><td><kbd>Esc</kbd></td><td>退出本轮 / 关闭弹窗 / 从回看返回</td><td>全部模式</td></tr>
         </table>
         <div class="tut-tip">拼写模式下先打字，<kbd>Enter</kbd> 提交；这时 Q/E 会被当成字母输进去，不会触发快捷键。</div>`,
