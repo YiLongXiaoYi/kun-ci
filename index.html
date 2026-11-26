@@ -44,6 +44,7 @@
   <div class="topstats">
     <span class="pill" id="pillToday">今日 0</span>
     <span class="pill" id="pillStreak">🔥 0 天</span>
+    <button class="icon-btn" id="btnTut" title="新手教程" aria-label="新手教程">?</button>
     <button class="icon-btn" id="btnTheme" title="切换深浅色">🌙</button>
     <button class="icon-btn" id="btnSettings" title="设置">⚙</button>
   </div>
@@ -436,6 +437,28 @@
   </div>
 </div>
 
+<!-- ==================== 新手教程 ==================== -->
+<div class="tutorial" id="tutorial" hidden>
+  <div class="tut-card" role="dialog" aria-modal="true" aria-label="新手教程">
+    <div class="tut-head">
+      <div>
+        <h2>新手教程</h2>
+        <p class="muted">电脑端 / 手机端用法 · 快捷键 · 设置项</p>
+      </div>
+      <button class="icon-btn" id="btnCloseTut" aria-label="关闭教程">✕</button>
+    </div>
+    <div class="tut-body">
+      <nav class="tut-nav" id="tutNav"></nav>
+      <div class="tut-panels" id="tutPanels"></div>
+    </div>
+    <div class="tut-foot">
+      <button class="btn ghost small" id="btnTutPrev">← 上一步</button>
+      <span class="muted" id="tutStep">1 / 5</span>
+      <button class="btn primary small" id="btnTutNext">下一步 →</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script src="data.js"></script>
@@ -443,6 +466,7 @@
 <script src="rank.js"></script>
 <script src="app.js"></script>
 <script src="vendor/peerjs.min.js"></script>
+<script src="tutorial.js"></script>
 <script src="battle.js"></script>
 </body>
 </html>
