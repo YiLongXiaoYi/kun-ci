@@ -31,6 +31,8 @@
     hard: { key: "hard", label: "加练", icon: "🔥", mul: 0.82, acc: 0.88 },
   };
   const SPAR_COMEBACK = 3; // 连输这么多局，下一局降成「回温局」
+  const SPAR_SIZES = [2, 3, 4]; // 随机 2 / 3 / 4 人局
+  const SPAR_SPREAD = { 1: [1], 2: [0.95, 1.05], 3: [0.92, 1.0, 1.08] }; // 同局几位陪练之间的快慢差异
 
   const $ = (s) => document.querySelector(s);
   const el = (tag, cls, txt) => {
@@ -130,7 +132,7 @@
     if (!n) return;
     const p = sparProfile();
     const tier = SPAR_TIERS[p.tier];
-    const bits = [`当前陪练：${tier.label} · 约 ${p.perQ.toFixed(1)} 秒/题`];
+    const bits = [`当前陪练：${tier.label} · 约 ${p.perQ.toFixed(1)} 秒/题 · 2–4 人随机`];
     if (p.comeback) bits.push(`连输 ${p.lossStreak} 局 → 这一局是回温局`);
     else if (p.winStreak >= SPAR_COMEBACK) bits.push(`连胜 ${p.winStreak} 局 → 陪练提速到加练`);
     n.textContent = bits.join(" · ");
@@ -506,10 +508,10 @@
 
   /* ---------------- 快速匹配：离线智能陪练 ----------------
    *
-   * 一位 AI 对手，本机跑，不开房、不联网。速度不写死：按「你的掌握程度 + 你最近的
-   * 实际用时」算出一个每题基准时间，再乘以难度系数，所以练得越好它读得越快。
-   * 出题优先从你正在复习（错过 / 到期 / 学习中）的词里挑。
-   * 连输 3 局自动降成「回温局」，页面里会明说；赢还是靠你比它快，不是预先定好的。
+   * 随机 2 / 3 / 4 人局（1–3 位 AI 对手），本机跑，不开房、不联网。速度不写死：按
+   * 「你的掌握程度 + 你最近的实际用时」算出每题基准时间，再乘难度系数和各自的小幅差异，
+   * 所以练得越好它们读得越快，同局里也会有一快一慢。出题优先从你正在复习的词里挑。
+   * 连输 3 局自动降成「回温局」，页面里会明说；名次仍由用时决定，不是预先定好的。
    */
 
   /** 最近的连续垫底/连胜局数（history 是「早 → 晚」追加的，所以从末尾往回数） */
@@ -598,9 +600,11 @@
     stopTimers();
 
     const prof = sparProfile();
+    const total = SPAR_SIZES[Math.floor(Math.random() * SPAR_SIZES.length)];
+    const botCount = total - 1;
     const quiz = buildQuiz(reviewWords());
     const pid = "s" + rnd(6);
-    const bpid = "b" + rnd(6);
+    const rels = shuffle(SPAR_SPREAD[botCount] || [1]);
 
     R = {
       mode: "spar",
@@ -616,30 +620,30 @@
       startedAt: Date.now(),
       race: null,
       applied: false,
-      spar: prof,
+      spar: Object.assign({}, prof, { total, bots: [] }),
     };
     addPlayer(pid, nick, meMeta());
-    addPlayer(bpid, SPAR_NAMES[Math.floor(Math.random() * SPAR_NAMES.length)], {
-      stars: 0,
-      label: "陪练",
-      icon: prof.icon,
-    });
-    R.players.get(bpid).isBot = true;
-    R.spar.bpid = bpid;
-    R.spar.elapsed = 0;
-    R.spar.plan = [];
+
+    // 1–3 位陪练，名字不重复，速度各有 ±8% 的差异
+    shuffle(SPAR_NAMES)
+      .slice(0, botCount)
+      .forEach((nm, i) => {
+        const bpid = "b" + rnd(6);
+        addPlayer(bpid, nm, { stars: 0, label: "陪练", icon: prof.icon });
+        R.players.get(bpid).isBot = true;
+        R.spar.bots.push({ pid: bpid, rel: rels[i] || 1, idx: 0, elapsed: 0, plan: [] });
+      });
 
     beginRace(quiz, 3000);
-    planBot(bpid, prof);
+    R.spar.bots.forEach((b) => planBot(b, prof));
   }
 
-  /** 把这一局的 10 次「陪练答题」排成时间表，再按表推进 */
-  function planBot(bpid, prof) {
+  /** 把一位陪练这一局的 10 次答题排成时间表，再按表推进 */
+  function planBot(bot, prof) {
     if (!R || !R.spar) return;
-    const base = prof.perQ; // 每题秒数基准（perQ 已经是「秒/题」）
+    const base = prof.perQ * (bot.rel || 1); // 每题秒数基准（perQ 已经是「秒/题」）
     let cum = 0;
     let wrong = 0;
-    const plan = [];
     for (let i = 0; i < 10; i++) {
       let dt = base * (0.7 + Math.random() * 0.6);
       if (Math.random() > prof.acc) {
@@ -648,42 +652,51 @@
         dt += PENALTY_MS / 1000 + 0.3 + Math.random() * 0.9;
       }
       cum += dt;
-      plan.push({ ms: Math.round(cum * 1000), wrong });
+      bot.plan.push({ ms: Math.round(cum * 1000), wrong });
     }
-    R.spar.plan = plan;
-    runBot(0);
+    runBot(bot);
   }
 
-  function runBot(idx) {
-    if (!R || !R.spar) return;
-    const s = R.spar;
-    const plan = s.plan || [];
-    if (idx >= plan.length) return;
-    const bot = R.players.get(s.bpid);
-    if (!bot) return;
-    const step = plan[idx];
-    s.idx = idx;
+  function runBot(bot) {
+    if (!R || !R.spar || !bot) return;
+    const plan = bot.plan;
+    if (bot.idx >= plan.length) return;
+    const step = plan[bot.idx];
+    const at = bot.idx;
     // 你已经答完并且等了一会儿，就让剩下的进度快点走完
-    const delay = s.accel ? 320 : Math.max(120, step.ms - s.elapsed);
+    const delay = bot.accel ? 320 : Math.max(120, step.ms - bot.elapsed);
     const id = setTimeout(() => {
       if (!R || R.mode !== "spar" || !R.spar) return;
-      s.elapsed = step.ms;
-      bot.answered = idx + 1;
-      bot.wrong = step.wrong;
-      if (idx === plan.length - 1) {
-        bot.finishMs = step.ms;
-        watchIdleUser();
+      const p = R.players.get(bot.pid);
+      if (!p) return;
+      bot.elapsed = step.ms;
+      p.answered = at + 1;
+      p.wrong = step.wrong;
+      if (at === plan.length - 1) {
+        p.finishMs = step.ms;
+        if (allBotsDone()) watchIdleUser();
       }
       if (R.race && R.race.finished) renderWaiting();
       else renderTrack();
       maybeSettle();
-      runBot(idx + 1);
+      bot.idx = at + 1;
+      runBot(bot);
     }, delay);
     T.spar.push(id);
   }
 
-  /** 陪练已经答完、你还在磨：真的放弃（15 秒没动手）才按未完成结算，别硬截断 */
+  function allBotsDone() {
+    if (!R || !R.spar) return false;
+    return R.spar.bots.every((b) => {
+      const p = R.players.get(b.pid);
+      return p && p.finishMs > 0;
+    });
+  }
+
+  /** 陪练都答完、你还在磨：真的放弃（15 秒没动手）才按未完成结算，别硬截断 */
   function watchIdleUser() {
+    if (!R || !R.spar || R.spar.watching) return;
+    R.spar.watching = true;
     const id = setTimeout(() => {
       if (!R || R.mode !== "spar" || R.status !== "playing") return;
       const me = R.players.get(R.pid);
@@ -698,17 +711,20 @@
     T.spar.push(id);
   }
 
-  /** 你答完等太久了：把陪练剩下的进度压缩到几秒内走完（记录用时仍按原计划，不改结果） */
+  /** 你答完等太久了：把还在跑的陪练压缩到几秒内走完（记录用时仍按原计划，不改结果） */
   function accelerateBot() {
-    if (!R || !R.spar || R.spar.accel) return;
-    const s = R.spar;
-    s.accel = true;
+    if (!R || !R.spar || R.spar.accelerated) return;
+    R.spar.accelerated = true;
     T.spar.forEach((id) => clearTimeout(id));
     T.spar = [];
-    if (typeof s.idx === "number") runBot(s.idx);
+    R.spar.bots.forEach((b) => {
+      if (!b.accel) b.accel = true;
+      const p = R.players.get(b.pid);
+      if (p && !p.finishMs) runBot(b);
+    });
   }
 
-  /** 比赛页顶部的「智能陪练 · 常规」小标签 */
+  /** 比赛页顶部的「智能陪练 · 常规 · 3 人」小标签 */
   function updateSparBadge() {
     const n = $("#raceMode");
     if (!n) return;
@@ -719,8 +735,8 @@
     }
     const p = R.spar;
     n.hidden = false;
-    n.textContent = `智能陪练 · ${p.label}` + (p.comeback ? " · 回温局" : "");
-    n.title = `离线 AI 对手 · 约 ${p.perQ.toFixed(1)} 秒/题`;
+    n.textContent = `智能陪练 · ${p.label} · ${p.total} 人` + (p.comeback ? " · 回温局" : "");
+    n.title = `${p.total - 1} 位离线 AI 对手 · 约 ${p.perQ.toFixed(1)} 秒/题`;
   }
 
   /* ---------------- 消息处理：房主端 ---------------- */
@@ -1041,8 +1057,8 @@
       }, 30000);
     }
     if (R.mode === "spar") {
-      const bot = R.players.get(R.spar.bpid);
-      if (bot && !bot.finishMs) T.spar.push(setTimeout(accelerateBot, 9000));
+      const anyLeft = R.players && Array.from(R.players.values()).some((p) => p.isBot && !p.finishMs);
+      if (anyLeft) T.spar.push(setTimeout(accelerateBot, 9000));
     }
     renderWaiting();
   }
@@ -1099,7 +1115,7 @@
       $("#bresultSub").textContent =
         (mine.ms > 0 ? `用时 ${(mine.ms / 1000).toFixed(1)}s` : "未完成（超时）") +
         " · " +
-        (R.mode === "spar" ? "1v1 智能陪练" : `${total} 人同场`) +
+        (R.mode === "spar" ? `${total} 人 · 智能陪练` : `${total} 人同场`) +
         ` · 本地段位 ${res.to.label}`;
 
       const wrap = $("#starChange");
@@ -1130,11 +1146,11 @@
     const sparNote = $("#bresultSpar");
     if (sparNote) {
       if (R.mode === "spar" && R.spar) {
-        const opp = results.find((x) => x.pid !== R.pid);
+        const opps = results.filter((x) => x.pid !== R.pid).map((x) => x.nick);
         const t = SPAR_TIERS[R.spar.tier];
         sparNote.hidden = false;
         sparNote.textContent =
-          `对手：${opp ? opp.nick : "陪练"}（离线 AI · ${t.label} · 约 ${R.spar.perQ.toFixed(1)} 秒/题）` +
+          `对手：${opps.join("、") || "陪练"}（${total} 人局 · 离线 AI · ${t.label} · 约 ${R.spar.perQ.toFixed(1)} 秒/题）` +
           (R.spar.comeback ? ` · 回温局：连输 ${R.spar.lossStreak} 局后难度下调` : "");
       } else {
         sparNote.hidden = true;
