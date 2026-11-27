@@ -89,7 +89,7 @@
         <div class="rank-emblem sm" id="homeEmblem">🐛</div>
         <div class="battle-copy">
           <b id="homeRank">幼虫 III · 0 星</b>
-          <p class="muted">真人排位对战 · 10 个单词 4 个选项 · 先答完拿星</p>
+          <p class="muted">真人排位 / 智能陪练 · 10 个单词 4 个选项 · 先答完拿星</p>
         </div>
       </div>
       <button class="btn primary small" id="btnOpenBattle">排位对战</button>
@@ -243,7 +243,7 @@
     <div class="panel-head page-head">
       <div>
         <h2>排位对战</h2>
-        <p class="muted">真人同场 · 10 词 4 选项 · 段位存云端</p>
+        <p class="muted">真人同场 / 智能陪练 · 10 词 4 选项 · 段位存在本机</p>
       </div>
       <button class="btn ghost small" id="btnRankBack">← 返回首页</button>
     </div>
@@ -261,6 +261,20 @@
     </div>
 
     <div class="stats-grid" id="rankStats"></div>
+
+    <div class="panel spar-panel">
+      <div class="panel-head">
+        <h3>快速匹配</h3>
+        <span class="muted">离线 · 不用等同学</span>
+      </div>
+      <p class="rule">没人在线也能打：匹配一位 <b>智能陪练</b>（离线 AI 对手，不是真人）。它的答题速度按你的掌握程度算
+      —— 你练得越多、掌握得越好，它读得越快；出题优先挑你正在复习、还没掌握的词。连输 <b>3</b> 局会给你一局
+      <b>回温局</b>，陪练难度下调，先把节奏找回来。</p>
+      <div class="cta-row">
+        <button class="btn primary" id="btnSpar">快速匹配</button>
+      </div>
+      <p class="fine" id="sparInfo">当前陪练：常规 · 约 5.6 秒/题</p>
+    </div>
 
     <div class="panel">
       <div class="panel-head">
@@ -298,7 +312,7 @@
     <div class="panel">
       <div class="panel-head">
         <h3>最近战绩</h3>
-        <span class="muted">存在云端</span>
+        <span class="muted">存在本机</span>
       </div>
       <div class="hist" id="rankHistory"></div>
     </div>
@@ -340,6 +354,7 @@
   <section class="view" id="view-race">
     <div class="race-top">
       <span class="race-q" id="raceProgress">1 / 10</span>
+      <span class="race-mode" id="raceMode" hidden></span>
       <span class="race-penalty" id="racePenalty" hidden></span>
       <span class="race-timer" id="raceTimer">0.0s</span>
     </div>
@@ -375,6 +390,7 @@
 
     <div class="board" id="bresultBoard"></div>
     <div class="star-change" id="starChange"></div>
+    <p class="fine" id="bresultSpar" hidden></p>
 
     <div class="cta-row">
       <button class="btn primary" id="btnRematch">再来一局</button>

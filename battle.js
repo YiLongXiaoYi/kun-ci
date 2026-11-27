@@ -22,6 +22,16 @@
   const WASD = ["w", "a", "s", "d"];
   const RACE_HINT = `选一个中文意思 · 选错 +${PENALTY_MS / 1000}s 罚时，只锁 ${(LOCK_MS / 1000).toFixed(1)}s`;
 
+  /* 智能陪练：1v1 的离线对手。名字里直接写「陪练」，
+     页面文案也写明是 AI —— 不冒充同学，也不预先写好输赢。 */
+  const SPAR_NAMES = ["陪练·金龟子", "陪练·蟋蟀", "陪练·豆娘", "陪练·步行虫", "陪练·蚜虫", "陪练·蜉蝣"];
+  const SPAR_TIERS = {
+    easy: { key: "easy", label: "入门", icon: "🍃", mul: 1.35, acc: 0.58 },
+    normal: { key: "normal", label: "常规", icon: "⚔", mul: 1.0, acc: 0.76 },
+    hard: { key: "hard", label: "加练", icon: "🔥", mul: 0.82, acc: 0.88 },
+  };
+  const SPAR_COMEBACK = 3; // 连输这么多局，下一局降成「回温局」
+
   const $ = (s) => document.querySelector(s);
   const el = (tag, cls, txt) => {
     const n = document.createElement(tag);
@@ -62,7 +72,7 @@
 
   /* ---------------- 运行时状态 ---------------- */
   let R = null; // { code, pid, nick, isHost, peer, conns: Map<pid, conn>, players: Map<pid,{pid,nick,stars,label,icon,answered,wrong,finishMs}>, status, quiz, startedAt, race, applied }
-  const T = { clock: null, race: null, fallback: null };
+  const T = { clock: null, race: null, fallback: null, spar: [] };
 
   const stopTimers = () => {
     ["clock", "race"].forEach((k) => {
@@ -73,6 +83,8 @@
       clearTimeout(T.fallback);
       T.fallback = null;
     }
+    T.spar.forEach((id) => clearTimeout(id));
+    T.spar = [];
   };
 
   /* ---------------- 段位（纯本地） ---------------- */
@@ -107,8 +119,21 @@
     $("#homeRank").textContent =
       d.label + " · " + (d.isKing ? d.starInSub + " 星" : d.starInSub + "/" + d.per + " 星");
 
+    renderSparInfo();
     renderLadder(d.tierIndex);
     renderHistory(r.history || []);
+  }
+
+  /** 排位页那行「当前陪练」小字：难度 + 每题大致用时，全部来自真实计算 */
+  function renderSparInfo() {
+    const n = $("#sparInfo");
+    if (!n) return;
+    const p = sparProfile();
+    const tier = SPAR_TIERS[p.tier];
+    const bits = [`当前陪练：${tier.label} · 约 ${p.perQ.toFixed(1)} 秒/题`];
+    if (p.comeback) bits.push(`连输 ${p.lossStreak} 局 → 这一局是回温局`);
+    else if (p.winStreak >= SPAR_COMEBACK) bits.push(`连胜 ${p.winStreak} 局 → 陪练提速到加练`);
+    n.textContent = bits.join(" · ");
   }
 
   function nextSubLabel(d) {
@@ -150,7 +175,10 @@
       box.appendChild(el("div", "book-empty", "还没有对战记录，去开一局吧。"));
       return;
     }
-    list.slice(0, 8).forEach((h) => {
+    list
+      .slice(-8)
+      .reverse()
+      .forEach((h) => {
       const row = el("div", "hist-row");
       row.appendChild(el("span", "hist-place", h.place === 1 ? "🥇" : "#" + h.place));
       row.appendChild(el("b", "hist-rank", h.rank));
@@ -435,8 +463,8 @@
   }
 
   /* ---------------- 出题 ---------------- */
-  function buildQuiz() {
-    const picks = shuffle(WORDS).slice(0, 10);
+  function buildQuiz(list) {
+    const picks = shuffle(list && list.length ? list : WORDS).slice(0, 10);
     return picks.map((w) => {
       const same = shuffle(WORDS.filter((x) => x.id !== w.id && x.cat === w.cat && x.zh !== w.zh));
       const other = shuffle(WORDS.filter((x) => x.id !== w.id && x.zh !== w.zh));
@@ -469,6 +497,230 @@
     broadcast({ t: "start", quiz: R.quiz, inMs: 3000 });
     broadcast(rosterPayload());
     beginRace(R.quiz, 3000);
+    // 兜底：有人一直不答题就不会有后续事件，45 秒后主动查一次结算
+    if (T.fallback) clearTimeout(T.fallback);
+    T.fallback = setTimeout(() => {
+      if (R && R.isHost && R.status === "playing") maybeSettle();
+    }, 47000);
+  }
+
+  /* ---------------- 快速匹配：离线智能陪练 ----------------
+   *
+   * 一位 AI 对手，本机跑，不开房、不联网。速度不写死：按「你的掌握程度 + 你最近的
+   * 实际用时」算出一个每题基准时间，再乘以难度系数，所以练得越好它读得越快。
+   * 出题优先从你正在复习（错过 / 到期 / 学习中）的词里挑。
+   * 连输 3 局自动降成「回温局」，页面里会明说；赢还是靠你比它快，不是预先定好的。
+   */
+
+  /** 最近的连续垫底/连胜局数（history 是「早 → 晚」追加的，所以从末尾往回数） */
+  function spinStreak(list, lose) {
+    let n = 0;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const h = list[i];
+      if (!h || !(h.total > 1)) break;
+      const hit = lose ? h.place === h.total : h.place === 1;
+      if (hit) n++;
+      else break;
+    }
+    return n;
+  }
+
+  /** 算这一局陪练的水平：掌握度决定它读得多快，连输/连胜决定难度系数 */
+  function sparProfile() {
+    const rank = rankStore.get();
+    const hist = (rank.history || []).filter((h) => h && h.ms > 0);
+    const times = hist.slice(0, 6).map((h) => h.ms / 1000).sort((a, b) => a - b);
+    const median = times.length ? times[Math.floor(times.length / 2)] : 0;
+
+    const m = KW.mastery ? KW.mastery() : { mastered: 0, total: 1 };
+    const ratio = m.total ? m.mastered / m.total : 0;
+    // 掌握度 0 → 6.2 秒/题，掌握度 100% → 4.0 秒/题
+    const byMastery = Math.max(34, Math.min(64, 62 - 22 * ratio));
+    // 一半看掌握度、一半看你最近的实测用时，手感差别不至于太大
+    const base10 = median > 0 ? 0.45 * byMastery + 0.55 * Math.max(25, Math.min(150, median)) : byMastery;
+
+    const lossStreak = spinStreak(rank.history || [], true);
+    const winStreak = spinStreak(rank.history || [], false);
+    let tier = "normal";
+    let comeback = false;
+    if (lossStreak >= SPAR_COMEBACK) {
+      tier = "easy";
+      comeback = true;
+    } else if (winStreak >= SPAR_COMEBACK) {
+      tier = "hard";
+    }
+    const t = SPAR_TIERS[tier];
+    return {
+      tier,
+      comeback,
+      lossStreak,
+      winStreak,
+      ratio,
+      base10,
+      perQ: (base10 * t.mul) / 10,
+      secondsPerQ: (base10 * t.mul) / 10,
+      acc: t.acc,
+      mul: t.mul,
+      label: t.label,
+      icon: t.icon,
+    };
+  }
+
+  /** 出题池：把你正在复习的词排在前面（错过 > 到期 > 学习中 > 没练过 > 已掌握） */
+  function reviewWords() {
+    const now = Date.now();
+    const bucket = { wrong: [], due: [], learning: [], fresh: [], mastered: [] };
+    WORDS.forEach((w) => {
+      const p = KW.progressOf ? KW.progressOf(w.id) : { stage: 0, wrong: 0, due: 0 };
+      const stage = p.stage | 0;
+      if (stage >= 6) return bucket.mastered.push(w);
+      if (p.wrong > 0) bucket.wrong.push(w);
+      if (stage >= 1) (p.due <= now ? bucket.due : bucket.learning).push(w);
+      else bucket.fresh.push(w);
+    });
+    const out = [];
+    const seen = new Set();
+    const push = (w) => {
+      if (seen.has(w.id) || out.length >= 10) return;
+      seen.add(w.id);
+      out.push(w);
+    };
+    // 正在复习的三类先装满，剩下的位置才轮到没练过 / 已掌握
+    ["wrong", "due", "learning", "fresh", "mastered"].forEach((k) =>
+      shuffle(bucket[k]).forEach(push)
+    );
+    return out;
+  }
+
+  function startSpar() {
+    const nick = ensureNick();
+    if (!nick) return;
+    stopTimers();
+
+    const prof = sparProfile();
+    const quiz = buildQuiz(reviewWords());
+    const pid = "s" + rnd(6);
+    const bpid = "b" + rnd(6);
+
+    R = {
+      mode: "spar",
+      code: "",
+      pid,
+      nick,
+      isHost: true,
+      peer: null,
+      conns: new Map(),
+      players: new Map(),
+      status: "playing",
+      quiz,
+      startedAt: Date.now(),
+      race: null,
+      applied: false,
+      spar: prof,
+    };
+    addPlayer(pid, nick, meMeta());
+    addPlayer(bpid, SPAR_NAMES[Math.floor(Math.random() * SPAR_NAMES.length)], {
+      stars: 0,
+      label: "陪练",
+      icon: prof.icon,
+    });
+    R.players.get(bpid).isBot = true;
+    R.spar.bpid = bpid;
+    R.spar.elapsed = 0;
+    R.spar.plan = [];
+
+    beginRace(quiz, 3000);
+    planBot(bpid, prof);
+  }
+
+  /** 把这一局的 10 次「陪练答题」排成时间表，再按表推进 */
+  function planBot(bpid, prof) {
+    if (!R || !R.spar) return;
+    const base = prof.perQ; // 每题秒数基准（perQ 已经是「秒/题」）
+    let cum = 0;
+    let wrong = 0;
+    const plan = [];
+    for (let i = 0; i < 10; i++) {
+      let dt = base * (0.7 + Math.random() * 0.6);
+      if (Math.random() > prof.acc) {
+        // 陪练也会点错：罚时 + 重新点的时间
+        wrong++;
+        dt += PENALTY_MS / 1000 + 0.3 + Math.random() * 0.9;
+      }
+      cum += dt;
+      plan.push({ ms: Math.round(cum * 1000), wrong });
+    }
+    R.spar.plan = plan;
+    runBot(0);
+  }
+
+  function runBot(idx) {
+    if (!R || !R.spar) return;
+    const s = R.spar;
+    const plan = s.plan || [];
+    if (idx >= plan.length) return;
+    const bot = R.players.get(s.bpid);
+    if (!bot) return;
+    const step = plan[idx];
+    s.idx = idx;
+    // 你已经答完并且等了一会儿，就让剩下的进度快点走完
+    const delay = s.accel ? 320 : Math.max(120, step.ms - s.elapsed);
+    const id = setTimeout(() => {
+      if (!R || R.mode !== "spar" || !R.spar) return;
+      s.elapsed = step.ms;
+      bot.answered = idx + 1;
+      bot.wrong = step.wrong;
+      if (idx === plan.length - 1) {
+        bot.finishMs = step.ms;
+        watchIdleUser();
+      }
+      if (R.race && R.race.finished) renderWaiting();
+      else renderTrack();
+      maybeSettle();
+      runBot(idx + 1);
+    }, delay);
+    T.spar.push(id);
+  }
+
+  /** 陪练已经答完、你还在磨：真的放弃（15 秒没动手）才按未完成结算，别硬截断 */
+  function watchIdleUser() {
+    const id = setTimeout(() => {
+      if (!R || R.mode !== "spar" || R.status !== "playing") return;
+      const me = R.players.get(R.pid);
+      if (me && me.finishMs > 0) return;
+      const lastAct = (R.race && R.race.lastAct) || R.raceStartAt || R.startedAt;
+      if (Date.now() - lastAct > 15000) {
+        settleAsHost();
+        return;
+      }
+      watchIdleUser();
+    }, 2000);
+    T.spar.push(id);
+  }
+
+  /** 你答完等太久了：把陪练剩下的进度压缩到几秒内走完（记录用时仍按原计划，不改结果） */
+  function accelerateBot() {
+    if (!R || !R.spar || R.spar.accel) return;
+    const s = R.spar;
+    s.accel = true;
+    T.spar.forEach((id) => clearTimeout(id));
+    T.spar = [];
+    if (typeof s.idx === "number") runBot(s.idx);
+  }
+
+  /** 比赛页顶部的「智能陪练 · 常规」小标签 */
+  function updateSparBadge() {
+    const n = $("#raceMode");
+    if (!n) return;
+    if (!R || R.mode !== "spar" || !R.spar) {
+      n.hidden = true;
+      n.textContent = "";
+      return;
+    }
+    const p = R.spar;
+    n.hidden = false;
+    n.textContent = `智能陪练 · ${p.label}` + (p.comeback ? " · 回温局" : "");
+    n.title = `离线 AI 对手 · 约 ${p.perQ.toFixed(1)} 秒/题`;
   }
 
   /* ---------------- 消息处理：房主端 ---------------- */
@@ -529,7 +781,8 @@
     const list = Array.from(R.players.values());
     if (!list.length) return;
     const allDone = list.every((p) => p.finishMs > 0);
-    const timedOut = Date.now() - R.startedAt > 45000;
+    // 陪练局不按 45 秒硬截断：AI 的计划时间可能本来就长
+    const timedOut = R.mode !== "spar" && Date.now() - R.startedAt > 45000;
     if (allDone || timedOut) settleAsHost();
   }
 
@@ -604,9 +857,10 @@
   /* ---------------- 竞速 ---------------- */
   function beginRace(quiz, inMs) {
     stopTimers();
-    R.race = { quiz, i: 0, wrong: 0, finished: false, penaltyMs: 0, locked: false };
+    R.race = { quiz, i: 0, wrong: 0, finished: false, penaltyMs: 0, locked: false, lastAct: Date.now() };
     R.raceStartAt = 0;
     KW.show("race");
+    updateSparBadge();
     $("#raceOptions").innerHTML = "";
     $("#raceWord").textContent = "准备…";
     $("#raceHint").textContent = RACE_HINT;
@@ -686,6 +940,7 @@
   function pickOption(btn, text) {
     const r = R.race;
     if (!r || r.finished || r.locked) return;
+    r.lastAct = Date.now();
     const q = r.quiz[r.i];
     if (text === q.answer) {
       btn.classList.add("is-right");
@@ -785,6 +1040,10 @@
         }
       }, 30000);
     }
+    if (R.mode === "spar") {
+      const bot = R.players.get(R.spar.bpid);
+      if (bot && !bot.finishMs) T.spar.push(setTimeout(accelerateBot, 9000));
+    }
     renderWaiting();
   }
 
@@ -830,14 +1089,18 @@
       const next = Object.assign({}, res.rank, {
         history: (rankStore.get().history || []).concat([
           { at: Date.now(), place, total, ms: mine.ms, delta: res.delta, rank: res.to.label, stars: res.after },
-        ]).slice(0, 20),
+        ]).slice(-20),
       });
       rankStore.set(next);
       renderRank();
 
       $("#bresultTitle").textContent =
         res.delta > 0 ? `第 ${place} 名！+${res.delta} 星` : res.delta < 0 ? `第 ${place} 名，${res.delta} 星` : "星星不变";
-      $("#bresultSub").textContent = `用时 ${(mine.ms / 1000).toFixed(1)}s · ${total} 人同场 · 本地段位 ${res.to.label}`;
+      $("#bresultSub").textContent =
+        (mine.ms > 0 ? `用时 ${(mine.ms / 1000).toFixed(1)}s` : "未完成（超时）") +
+        " · " +
+        (R.mode === "spar" ? "1v1 智能陪练" : `${total} 人同场`) +
+        ` · 本地段位 ${res.to.label}`;
 
       const wrap = $("#starChange");
       wrap.innerHTML = "";
@@ -863,6 +1126,22 @@
       if (res.rank.streak >= 3) wrap.appendChild(el("p", "banner up", `🔥 ${res.rank.streak} 连胜`));
     }
 
+    // 陪练局在结算里说清楚：对手是谁、什么难度、这局是不是回温局
+    const sparNote = $("#bresultSpar");
+    if (sparNote) {
+      if (R.mode === "spar" && R.spar) {
+        const opp = results.find((x) => x.pid !== R.pid);
+        const t = SPAR_TIERS[R.spar.tier];
+        sparNote.hidden = false;
+        sparNote.textContent =
+          `对手：${opp ? opp.nick : "陪练"}（离线 AI · ${t.label} · 约 ${R.spar.perQ.toFixed(1)} 秒/题）` +
+          (R.spar.comeback ? ` · 回温局：连输 ${R.spar.lossStreak} 局后难度下调` : "");
+      } else {
+        sparNote.hidden = true;
+        sparNote.textContent = "";
+      }
+    }
+
     const board = $("#bresultBoard");
     board.innerHTML = "";
     results.forEach((p, i) => {
@@ -882,6 +1161,7 @@
   /* ---------------- 再来一局 / 离开 ---------------- */
   function rematch() {
     if (!R) return leaveToRank();
+    if (R.mode === "spar") return startSpar(); // 陪练局：直接再配一位（难度按新的连胜/连输重算）
     if (R.isHost) {
       R.status = "waiting";
       R.quiz = null;
@@ -911,16 +1191,18 @@
   function leaveToRank(silent) {
     if (R) {
       try {
-        if (R.isHost) R.peer.destroy();
-        else {
+        if (R.isHost) {
+          if (R.peer) R.peer.destroy();
+        } else {
           const conn = R.conns.get("host");
           if (conn && conn.open) conn.send({ t: "leave" });
-          R.peer.destroy();
+          if (R.peer) R.peer.destroy();
         }
       } catch (e) {}
     }
     stopTimers();
     R = null;
+    updateSparBadge();
     const u = new URL(location.href);
     u.searchParams.delete("room");
     history.replaceState(null, "", u.toString());
@@ -947,8 +1229,30 @@
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       const v = ui().view;
+      if (v === "race" && R && R.mode === "spar") {
+        KW.toast("已退出陪练，本局不记输赢");
+        leaveToRank();
+        return;
+      }
       if (v === "rank" || v === "bresult") backHome();
     });
+
+    // 快速匹配：起一位离线陪练（先给个「正在匹配」的等待感，不联网）
+    const sparBtn = $("#btnSpar");
+    if (sparBtn) {
+      sparBtn.onclick = () => {
+        if (sparBtn.dataset.busy === "1") return;
+        if (!ensureNick()) return;
+        sparBtn.dataset.busy = "1";
+        const label = sparBtn.textContent;
+        sparBtn.textContent = "正在匹配陪练…";
+        setTimeout(() => {
+          sparBtn.textContent = label;
+          sparBtn.dataset.busy = "";
+          startSpar();
+        }, 900);
+      };
+    }
 
     $("#btnCreateRoom").onclick = createRoom;
     $("#btnJoinRoom").onclick = () => joinRoom();

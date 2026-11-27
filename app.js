@@ -1691,7 +1691,19 @@
   }
 
   // 供 battle.js 复用
-  window.KW = { show, toast, refreshHome: renderHome, refreshPills: updatePills, words: WORDS, applyTheme, gradeSpell };
+  window.KW = {
+    show,
+    toast,
+    refreshHome: renderHome,
+    refreshPills: updatePills,
+    words: WORDS,
+    applyTheme,
+    gradeSpell,
+    // 陪练要按掌握程度出题、算速度，所以把进度读口暴露出去
+    progressOf: (id) => prog(id),
+    mastery: () => counts(),
+    masterLevel: MASTER,
+  };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
