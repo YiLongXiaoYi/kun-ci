@@ -182,7 +182,7 @@
       const row = el("div", "hist-row");
       row.appendChild(el("span", "hist-place", h.place === 1 ? "🥇" : "#" + h.place));
       row.appendChild(el("b", "hist-rank", h.rank));
-      row.appendChild(el("span", "hist-meta", `${h.total} 人 · ${(h.ms / 1000).toFixed(1)}s`));
+      row.appendChild(el("span", "hist-meta", `${h.spar ? "人机" : h.total + " 人"} · ${(h.ms / 1000).toFixed(1)}s`));
       row.appendChild(
         el(
           "span",
@@ -1088,7 +1088,7 @@
       const res = RANK.apply(rankStore.get(), place, total);
       const next = Object.assign({}, res.rank, {
         history: (rankStore.get().history || []).concat([
-          { at: Date.now(), place, total, ms: mine.ms, delta: res.delta, rank: res.to.label, stars: res.after },
+          { at: Date.now(), place, total, ms: mine.ms, delta: res.delta, rank: res.to.label, stars: res.after, spar: R.mode === "spar" ? 1 : 0 },
         ]).slice(-20),
       });
       rankStore.set(next);
